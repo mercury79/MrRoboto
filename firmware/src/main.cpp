@@ -1,10 +1,14 @@
-// MrRoboto - Paso 2: la cara en la pantalla.
+// MrRoboto - Paso 3: la cara viva.
 //
-// Porta el motor de dibujo (face_render) a U8g2 y muestra una cara estatica
-// en la SH1106. Sin capas de vida todavia (eso es el paso 3): aqui solo se
-// valida que el vector facial se dibuja correcto en el hardware.
+// Sobre el render del paso 2 corren ahora las capas de vida (FaceEngine):
+// parpadeo estocastico, sacadas y respiracion, a tiempo real. La cara ya no es
+// una foto: respira, mira alrededor y parpadea aunque no pase nada.
 //
-// Regla del proyecto: el cuerpo es un periferico. Ninguna decision aqui.
+// Regla del proyecto: el cuerpo es un periferico. El firmware mantiene la cara
+// VIVA por su cuenta; el backend (paso 4, verbos HTTP) solo mandara intencion:
+// mueve la quimica (setChem/nudge/applyVoiceTag) y la boca (setMouth). Esas
+// capas viven aqui a proposito: si dependieran de la red, un lag congelaria la
+// cara a media palabra.
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -14,14 +18,25 @@
 #include "secrets.h"
 #include "face_params.h"
 #include "face_render.h"
+#include "face_engine.h"
 
 static const int PIN_LED = 2;
 static const int PIN_SDA = 21;
 static const int PIN_SCL = 22;
 
+// Reloj del bus I2C. 100 kHz es conservador por los jumpers dupont largos del
+// prototipo. A 100 kHz un volcado completo (128x64) tarda ~9 ms, asi que el
+// techo real ronda los ~30 fps con el resto del loop. Si el cableado lo
+// aguanta, subir a 400000 da mas cuadros y las capas se ven mas suaves. La
+// animacion usa dt real, asi que el TIEMPO es correcto a cualquier fps.
+static const uint32_t I2C_CLOCK = 100000;
+
 // SH1106 128x64 por I2C hardware, buffer COMPLETO (_F_): el render perfora
 // negro sobre blanco (pupilas, parpados) y eso exige el buffer entero.
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+
+// El motor facial: estado emocional + capas de vida. Vive en el firmware.
+static FaceEngine engine;
 
 static bool hayWiFi = false;
 
@@ -58,16 +73,6 @@ static void iniciarOTA() {
   Serial.printf("[ota] listo como \"%s.local\"\n", OTA_HOSTNAME);
 }
 
-// Cara de prueba del paso 2: neutra pero con una sonrisa suave, para ver de
-// un vistazo ojos + pupilas + la curva de la boca. Es solo un preset del
-// vector; cualquier otra cara es cambiar estos numeros.
-static FaceParams caraDePrueba() {
-  FaceParams p;                 // arranca en la neutra por defecto
-  p.mouth_curve = 0.35f;        // sonrisa leve
-  p.mouth_w     = 0.6f;
-  return p;
-}
-
 void setup() {
   pinMode(PIN_LED, OUTPUT);
   Serial.begin(115200);
@@ -76,7 +81,7 @@ void setup() {
   Serial.println();
   Serial.println(F("=================================="));
   Serial.println(F(" MrRoboto - firmware del cuerpo"));
-  Serial.println(F(" Paso 2: la cara en la pantalla"));
+  Serial.println(F(" Paso 3: la cara viva"));
   Serial.println(F("=================================="));
 
   hayWiFi = conectarWiFi();
@@ -86,22 +91,35 @@ void setup() {
   Wire.begin(PIN_SDA, PIN_SCL);
   u8g2.setI2CAddress(0x3C << 1);   // SH1106 en 0x3C
   bool ok = u8g2.begin();
-  u8g2.setBusClock(100000);        // 100 kHz por los jumpers dupont largos
+  u8g2.setBusClock(I2C_CLOCK);
   Serial.printf("[oled] u8g2.begin() = %s\n", ok ? "OK" : "FALLO");
-
-  // Dibuja la cara de prueba y vuelca al panel.
-  faceRender(u8g2, caraDePrueba());
-  u8g2.sendBuffer();
-  Serial.println(F("[oled] cara dibujada."));
+  Serial.printf("[cara] reposo: %s\n", engine.emotionLabel());
+  Serial.println(F("[cara] capas de vida activas (parpadeo, sacadas, respiracion)."));
 }
 
 void loop() {
   if (hayWiFi) ArduinoOTA.handle();
 
-  // Latido no bloqueante (firmware vivo). La cara es estatica en este paso.
+  // Reloj de la animacion: dt real en segundos entre cuadros. Cap suave a
+  // ~60 fps por si el bus I2C se sube y el loop se dispara; el limitante
+  // normal es el volcado a la pantalla, no este gate.
+  static uint32_t tPrev = 0;
+  uint32_t now = micros();
+  if (tPrev == 0) tPrev = now;
+  float dt = (now - tPrev) * 1e-6f;
+  if (dt < 0.016f) return;
+  tPrev = now;
+
+  // La cara: intencion (quimica) + capas de vida, resuelto por el motor.
+  FaceParams cara = engine.update(dt);
+  faceRender(u8g2, cara);
+  u8g2.sendBuffer();
+
+  // Latido del firmware en el LED (breve, no bloqueante): senal de que el loop
+  // corre. La cara ya demuestra que esta vivo, pero el LED sirve sin mirar.
   static uint32_t tLed = 0;
   static bool ledOn = false;
-  uint32_t ahora = millis();
-  if (!ledOn && ahora - tLed >= 900) { ledOn = true;  tLed = ahora; digitalWrite(PIN_LED, HIGH); }
-  if (ledOn  && ahora - tLed >= 100) { ledOn = false; tLed = ahora; digitalWrite(PIN_LED, LOW);  }
+  uint32_t ms = millis();
+  if (!ledOn && ms - tLed >= 900) { ledOn = true;  tLed = ms; digitalWrite(PIN_LED, HIGH); }
+  if (ledOn  && ms - tLed >= 100) { ledOn = false; tLed = ms; digitalWrite(PIN_LED, LOW);  }
 }

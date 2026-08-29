@@ -81,10 +81,20 @@ Las primitivas tienen equivalente directo en U8g2 (`drawBox`, `drawDisc`,
 `drawLine`), y el orden de campos de `FaceParams` es el mismo que tendrá el
 struct del firmware.
 
+## Firmware (ESP32)
+
+El cuerpo corre en un ESP32 con la SH1106. `render.py` y `engine.py` se
+tradujeron a C++ campo por campo — mismo vector, mismas capas.
+
+- [x] Paso 1 — base: blink, escaneo I2C, WiFi y OTA
+- [x] Paso 2 — port del motor de dibujo a U8g2 (cara estática)
+- [x] Paso 3 — capas de vida en el firmware (parpadeo, sacadas, respiración)
+- [ ] Paso 4 — verbos HTTP: `/face`, `/wave`, `/look`
+
 ## Ruta
 
 - [x] Motor facial paramétrico + capas de vida (simulador)
-- [ ] Port a ESP32 + SH1106 (U8g2)
+- [x] Port a ESP32 + SH1106 (U8g2)
 - [ ] Verbos HTTP: `/face`, `/wave`, `/look`
 - [ ] Backend: Whisper → Claude Agent SDK → ElevenLabs → RMS a la boca
 - [ ] MQTT + Home Assistant
