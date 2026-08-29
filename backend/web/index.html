@@ -82,6 +82,16 @@
         <label>Velocidad voz gratis <input type="number" data-path="tts.free_rate" /></label>
       </fieldset>
 
+      <fieldset><legend>Audio (dispositivos)</legend>
+        <label>Micrófono <small>(elige la C920, no el default)</small>
+          <select data-path="audio.input_device" data-int id="sel_in"><option value="">(por defecto)</option></select>
+        </label>
+        <label>Salida (bocina)
+          <select data-path="audio.output_device" data-int id="sel_out"><option value="">(por defecto)</option></select>
+        </label>
+        <button id="btn_load_audio" class="ghost tiny">cargar dispositivos</button>
+      </fieldset>
+
       <fieldset><legend>Ojos (cámara)</legend>
         <label class="chk"><input type="checkbox" data-path="vision.enabled" /> visión activada</label>
         <label>Índice de cámara <input type="number" data-path="vision.camera_index" /></label>

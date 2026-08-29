@@ -20,6 +20,7 @@ function bindFrom(settings) {
     const v = getPath(settings, el.dataset.path);
     if (v === undefined) return;
     if (el.type === "checkbox") el.checked = !!v;
+    else if (v === null) el.value = "";
     else el.value = v;
   });
 }
@@ -29,11 +30,24 @@ function gatherSettings() {
   $$("[data-path]").forEach((el) => {
     let v;
     if (el.type === "checkbox") v = el.checked;
+    else if (el.hasAttribute("data-int")) v = el.value === "" ? null : Number(el.value);
     else if (el.type === "number") v = Number(el.value);
     else v = el.value;
     setPath(s, el.dataset.path, v);
   });
   return s;
+}
+
+async function loadAudioDevices() {
+  const r = await api("/api/audio/devices");
+  const fill = (sel, list) => {
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">(por defecto)</option>` +
+      list.map((d) => `<option value="${d.index}">[${d.index}] ${d.name}</option>`).join("");
+    sel.value = cur;
+  };
+  fill($("#sel_in"), r.input);
+  fill($("#sel_out"), r.output);
 }
 
 function badge(text, cls) { return `<span class="badge ${cls || ""}">${text}</span>`; }
@@ -129,6 +143,8 @@ $("#btn_say").onclick = async () => {
   $("#say_text").value = "";
 };
 
+$("#btn_load_audio").onclick = async () => { await loadAudioDevices(); flash($("#btn_load_audio"), "cargados"); };
+
 $("#btn_start").onclick = async () => { await api("/api/session/start", "POST"); loadStatus(); };
 $("#btn_stop").onclick = async () => { await api("/api/session/stop", "POST"); loadStatus(); };
 
@@ -160,6 +176,7 @@ async function pollLog() {
 
 (async function init() {
   await loadStatus();
+  await loadAudioDevices();   // opciones antes de bindear los valores guardados
   await loadConfig();
   setInterval(loadStatus, 4000);
   setInterval(pollLog, 800);

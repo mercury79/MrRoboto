@@ -153,6 +153,24 @@ def voices():
     return {"voices": tts.list_voices(ek) if ek else []}
 
 
+@app.get("/api/audio/devices")
+def audio_devices():
+    """Lista micrófonos y bocinas para elegir la C920 en el panel."""
+    if importlib.util.find_spec("sounddevice") is None:
+        return {"input": [], "output": []}
+    import sounddevice as sd
+    ins, outs = [], []
+    try:
+        for i, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0:
+                ins.append({"index": i, "name": d["name"]})
+            if d["max_output_channels"] > 0:
+                outs.append({"index": i, "name": d["name"]})
+    except Exception:  # noqa: BLE001
+        pass
+    return {"input": ins, "output": outs}
+
+
 # ----------------------------------------------------------------------
 # Robot
 # ----------------------------------------------------------------------
