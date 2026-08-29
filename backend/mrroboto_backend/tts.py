@@ -56,30 +56,60 @@ def list_voices(api_key: str) -> list[dict]:
 # ----------------------------------------------------------------------
 
 def _play_pcm(pcm: bytes, samplerate: int, robot, stop_event, output_device=None) -> None:
-    """Reproduce PCM int16 mono y mueve la boca del robot con el RMS."""
+    """
+    Reproduce PCM int16 mono SIN cortes y mueve la boca del robot con el RMS.
+
+    Clave: el audio lo reproduce PortAudio (sd.play, con su propio buffer), y la
+    boca se manda por HTTP en un HILO APARTE. Asi la latencia de la red al ESP32
+    nunca frena el audio (ese era el motivo de que se oyera a tirones).
+    """
+    import threading
+    import time
+
     import numpy as np
     import sounddevice as sd
 
     audio = np.frombuffer(pcm, dtype=np.int16)
     if audio.size == 0:
         return
-    block = max(1, int(samplerate * _BLOCK_S))
 
-    with sd.OutputStream(samplerate=samplerate, channels=1, dtype="int16",
-                         device=output_device) as stream:
-        for start in range(0, audio.size, block):
-            if stop_event is not None and stop_event.is_set():
-                break
-            chunk = audio[start:start + block]
-            # RMS normalizado 0..1
-            rms = float(np.sqrt(np.mean((chunk.astype(np.float32) / 32768.0) ** 2)))
-            level = max(0.0, (rms * _MOUTH_GAIN) - _MOUTH_FLOOR)
-            level = min(1.0, level)
+    level = {"v": 0.0}
+    done = threading.Event()
+
+    def mouth_worker():
+        # manda la boca a su propio ritmo (~11 Hz); el firmware suaviza
+        while not done.is_set():
             if robot is not None:
-                robot.mouth(level)               # se manda ANTES de oirse: compensa el viaje al ESP32
-            stream.write(chunk)
-    if robot is not None:
-        robot.mouth(0.0)
+                robot.mouth(level["v"])
+            time.sleep(0.09)
+        if robot is not None:
+            robot.mouth(0.0)
+
+    mt = threading.Thread(target=mouth_worker, daemon=True)
+    mt.start()
+
+    sd.play(audio, samplerate, device=output_device)   # no bloqueante, buffer interno = audio fluido
+    try:
+        win = max(1, int(samplerate * _BLOCK_S))
+        n = audio.size
+        t0 = time.time()
+        idx = 0
+        while idx < n:
+            if stop_event is not None and stop_event.is_set():
+                sd.stop()
+                break
+            chunk = audio[idx:idx + win]
+            rms = float(np.sqrt(np.mean((chunk.astype(np.float32) / 32768.0) ** 2)))
+            level["v"] = min(1.0, max(0.0, (rms * _MOUTH_GAIN) - _MOUTH_FLOOR))
+            idx += win
+            # avanza el envolvente en sincronia con el reloj del audio
+            dt = (t0 + idx / samplerate) - time.time()
+            if dt > 0:
+                time.sleep(dt)
+        sd.wait()
+    finally:
+        done.set()
+        mt.join(timeout=0.5)
 
 
 def _speak_elevenlabs(text: str, cfg: dict, api_key: str, robot, stop_event,
