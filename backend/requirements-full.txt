@@ -1,0 +1,21 @@
+# Dependencias pesadas de voz + vision. Se instalan con install-full.bat o
+# desde el boton "Instalar dependencias completas" del panel.
+-r requirements-core.txt
+
+# --- Audio (entrada/salida) ---
+sounddevice==0.5.1
+numpy>=1.26,<2.2
+soundfile==0.12.1
+
+# --- STT: Whisper local (CTranslate2, sin compilador) ---
+faster-whisper==1.1.0
+
+# --- VAD (deteccion de voz) ---
+webrtcvad-wheels==2.0.14
+
+# --- TTS ---
+elevenlabs>=1.9.0        # voz de pago (natural)
+pyttsx3==2.98            # voz gratis, offline (SAPI de Windows)
+
+# --- Vision + reconocimiento facial (OpenCV, wheels, sin compilador) ---
+opencv-contrib-python==4.10.0.84

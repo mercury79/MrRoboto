@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MrRoboto · Panel</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🤖 MrRoboto <span class="sub">panel de control</span></h1>
+    <div id="badges" class="badges"></div>
+  </header>
+
+  <main>
+    <!-- API KEYS -->
+    <section class="card">
+      <h2>API keys <small>se guardan local, fuera de git</small></h2>
+      <label>Anthropic (Claude)
+        <input id="key_anthropic" type="password" placeholder="sk-ant-..." autocomplete="off" />
+      </label>
+      <label>ElevenLabs <small>(opcional; hay voz gratis)</small>
+        <input id="key_elevenlabs" type="password" placeholder="..." autocomplete="off" />
+      </label>
+      <div class="row">
+        <button id="btn_save_keys">Guardar keys</button>
+        <button id="btn_verify_keys" class="ghost">Verificar</button>
+      </div>
+      <div id="keys_result" class="result"></div>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="card">
+      <h2>Configuración</h2>
+
+      <fieldset><legend>Robot (ESP32)</legend>
+        <label>IP <input data-path="robot.ip" /></label>
+        <label class="chk"><input type="checkbox" data-path="robot.enabled" /> mover la cara</label>
+        <button id="btn_robot_test" class="ghost">Probar robot (saluda)</button>
+      </fieldset>
+
+      <fieldset><legend>Cerebro (Claude)</legend>
+        <label>Modelo
+          <select data-path="llm.model" id="sel_model"></select>
+        </label>
+        <label>Máx. tokens <input type="number" data-path="llm.max_tokens" /></label>
+        <label>Personalidad
+          <textarea data-path="llm.persona" rows="4"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset><legend>Oído (Whisper + VAD)</legend>
+        <label>Modelo Whisper
+          <select data-path="stt.model">
+            <option>large-v3</option><option>large-v3-turbo</option>
+            <option>medium</option><option>small</option><option>base</option><option>tiny</option>
+          </select>
+        </label>
+        <label>Idioma <input data-path="stt.language" placeholder="es / vacío = auto" /></label>
+        <label>VAD agresividad (0–3) <input type="number" min="0" max="3" data-path="vad.aggressiveness" /></label>
+        <label>Silencio para cerrar (ms) <input type="number" data-path="vad.silence_ms" /></label>
+      </fieldset>
+
+      <fieldset><legend>Voz (TTS)</legend>
+        <label>Motor
+          <select data-path="tts.engine" id="sel_tts">
+            <option value="elevenlabs">ElevenLabs (natural, de pago)</option>
+            <option value="pyttsx3">Gratis / offline (SAPI Windows)</option>
+          </select>
+        </label>
+        <label>Modelo ElevenLabs
+          <select data-path="tts.model">
+            <option value="eleven_flash_v2_5">flash v2.5 (rápido/barato)</option>
+            <option value="eleven_turbo_v2_5">turbo v2.5</option>
+            <option value="eleven_multilingual_v2">multilingual v2 (calidad)</option>
+          </select>
+        </label>
+        <label>Voz ElevenLabs
+          <select data-path="tts.voice_id" id="sel_voice"><option value="">(por defecto)</option></select>
+          <button id="btn_load_voices" class="ghost tiny">cargar voces</button>
+        </label>
+        <label>Velocidad voz gratis <input type="number" data-path="tts.free_rate" /></label>
+      </fieldset>
+
+      <fieldset><legend>Ojos (cámara)</legend>
+        <label class="chk"><input type="checkbox" data-path="vision.enabled" /> visión activada</label>
+        <label>Índice de cámara <input type="number" data-path="vision.camera_index" /></label>
+        <label class="chk"><input type="checkbox" data-path="vision.recognize" /> reconocerme</label>
+        <label class="chk"><input type="checkbox" data-path="session.speak_greeting" /> saludarme por voz</label>
+        <label>Umbral reconocimiento (menor=estricto) <input type="number" data-path="vision.confidence" /></label>
+      </fieldset>
+
+      <button id="btn_save_config">Guardar preferencias</button>
+    </section>
+
+    <!-- CARA / ENROL -->
+    <section class="card">
+      <h2>Reconocimiento facial</h2>
+      <p class="muted">Enrólate una vez: mira a la cámara ~5 s mientras captura fotos.</p>
+      <div class="row">
+        <input id="enroll_name" placeholder="Tu nombre" />
+        <button id="btn_enroll">Enrolar mi cara</button>
+      </div>
+      <div id="enrolled" class="muted"></div>
+    </section>
+
+    <!-- PRUEBA DE TEXTO -->
+    <section class="card">
+      <h2>Prueba rápida (texto)</h2>
+      <div class="row">
+        <input id="say_text" placeholder="Escríbele algo a MrRoboto..." />
+        <label class="chk"><input type="checkbox" id="say_speak" /> hablar</label>
+        <button id="btn_say">Enviar</button>
+      </div>
+    </section>
+
+    <!-- SESION -->
+    <section class="card session">
+      <h2>Conversación en vivo (voz + visión)</h2>
+      <div class="row">
+        <button id="btn_start" class="primary">▶ Iniciar</button>
+        <button id="btn_stop" class="danger" disabled>■ Detener</button>
+      </div>
+      <div id="log" class="log"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

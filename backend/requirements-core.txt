@@ -1,0 +1,6 @@
+# Dependencias del panel de control (ligeras, se instalan al lanzar run.bat).
+# Con esto ya arranca el panel, metes/verificas keys y pruebas al robot.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+anthropic>=0.40.0

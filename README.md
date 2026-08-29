@@ -117,7 +117,8 @@ a los 400 ms.
 - [x] Motor facial paramétrico + capas de vida (simulador)
 - [x] Port a ESP32 + SH1106 (U8g2)
 - [x] Verbos HTTP: `/face`, `/wave`, `/look`
-- [ ] Backend: Whisper → Claude Agent SDK → ElevenLabs → RMS a la boca
+- [~] Backend (`backend/`): Whisper → Claude → ElevenLabs → RMS a la boca, +
+      visión con reconocimiento facial. Panel de control web (`run.bat`).
 - [ ] MQTT + Home Assistant
 - [ ] Servos: PCA9685 + 4 GDL de cuello
 - [ ] DOA del ReSpeaker → voltear hacia quien habla

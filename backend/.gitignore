@@ -1,0 +1,14 @@
+# Nada sensible ni pesado sube al repo.
+.venv/
+__pycache__/
+*.pyc
+
+# Config local del usuario: preferencias + API KEYS. NUNCA al git.
+config/settings.json
+config/secrets.json
+
+# Datos de reconocimiento facial (tu cara) y modelos descargados.
+config/faces/
+models/
+*.onnx
+*.yml
