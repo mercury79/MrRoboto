@@ -57,6 +57,9 @@ FaceEngine::FaceEngine() {
   gazeX_ = gazeY_ = gazeTx_ = gazeTy_ = 0.0f;
   nextSaccade_ = uniformf(0.4f, 1.6f);
 
+  lookX_ = lookY_ = 0.0f;
+  lookReturn_ = 0.25f;                // regresa la mirada al centro en ~pocos s
+
   breathPhase_ = uniformf(0.0f, TAU);
   breathHz_ = 0.22f;
 
@@ -86,9 +89,28 @@ bool FaceEngine::applyVoiceTag(const char* tag) {
   return false;
 }
 
+bool FaceEngine::setPreset(const char* name) {
+  float s, n, d;
+  if (!chem_for_name(name, &s, &n, &d)) return false;
+  setChem(s, n, d);
+  return true;
+}
+
 void FaceEngine::setMouth(float value) {
   mouthTarget_ = clamp01(value);
   lastMouthUpdate_ = t_;
+}
+
+void FaceEngine::look(float x, float y) {
+  lookX_ = clampSym(x);
+  lookY_ = clampSym(y);
+}
+
+void FaceEngine::wave() {
+  // Saludo. Sin cuello todavia (eso son los servos), el "hola" es facial:
+  // una chispa de entusiasmo + la mirada al frente, hacia quien saluda.
+  applyVoiceTag("[excited]");
+  look(0.0f, 0.1f);
 }
 
 const char* FaceEngine::emotionLabel() const {
@@ -170,10 +192,14 @@ FaceParams FaceEngine::update(float dt) {
   out.face_y += breath * 0.06f;
   out.eye_h  += breath * 0.015f;
 
-  // --- capa: sacadas ---
+  // --- capa: sacadas + mirada dirigida ---
   updateSaccades(dt);
-  out.gaze_x = clampSym(out.gaze_x + gazeX_ * 0.35f);
-  out.gaze_y = clampSym(out.gaze_y + gazeY_ * 0.25f);
+  // la mirada de /look decae sola hacia el centro (no se queda clavada)
+  float kl = lookReturn_ * dt; if (kl > 1.0f) kl = 1.0f;
+  lookX_ += (0.0f - lookX_) * kl;
+  lookY_ += (0.0f - lookY_) * kl;
+  out.gaze_x = clampSym(out.gaze_x + gazeX_ * 0.35f + lookX_);
+  out.gaze_y = clampSym(out.gaze_y + gazeY_ * 0.25f + lookY_);
 
   // --- capa: parpadeo ---
   updateBlink(dt);

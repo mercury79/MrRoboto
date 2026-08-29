@@ -174,6 +174,20 @@ const char* dominant_emotion(float serotonina, float noradrenalina, float dopami
   return best;
 }
 
+bool chem_for_name(const char* name, float* s, float* n, float* d) {
+  if (strcmp(name, "reposo") == 0) {   // baseline contento, no una esquina
+    *s = 0.70f; *n = 0.30f; *d = 0.60f;
+    return true;
+  }
+  for (int i = 0; i < 8; i++) {
+    if (strcmp(name, CUBE[i].name) == 0) {
+      *s = (float)CUBE[i].s; *n = (float)CUBE[i].n; *d = (float)CUBE[i].d;
+      return true;
+    }
+  }
+  return false;
+}
+
 // --- etiquetas de voz ----------------------------------------------------
 
 struct VoiceTag { const char* tag; float ds, dn, dd; };

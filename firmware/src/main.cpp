@@ -1,14 +1,13 @@
-// MrRoboto - Paso 3: la cara viva.
+// MrRoboto - Paso 4: la cara viva + verbos HTTP.
 //
-// Sobre el render del paso 2 corren ahora las capas de vida (FaceEngine):
-// parpadeo estocastico, sacadas y respiracion, a tiempo real. La cara ya no es
-// una foto: respira, mira alrededor y parpadea aunque no pase nada.
+// La cara vive sola (FaceEngine: parpadeo, sacadas, respiracion a tiempo real)
+// y ahora el backend puede mandarle INTENCION por HTTP (/face, /look, /wave)
+// sin congelar la ilusion.
 //
 // Regla del proyecto: el cuerpo es un periferico. El firmware mantiene la cara
-// VIVA por su cuenta; el backend (paso 4, verbos HTTP) solo mandara intencion:
-// mueve la quimica (setChem/nudge/applyVoiceTag) y la boca (setMouth). Esas
-// capas viven aqui a proposito: si dependieran de la red, un lag congelaria la
-// cara a media palabra.
+// VIVA por su cuenta; el backend solo manda intencion: mueve la quimica, la
+// boca (RMS) y la mirada. Esas capas viven aqui a proposito: si dependieran de
+// la red, un lag congelaria la cara a media palabra.
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -19,6 +18,7 @@
 #include "face_params.h"
 #include "face_render.h"
 #include "face_engine.h"
+#include "http_api.h"
 
 static const int PIN_LED = 2;
 static const int PIN_SDA = 21;
@@ -81,11 +81,17 @@ void setup() {
   Serial.println();
   Serial.println(F("=================================="));
   Serial.println(F(" MrRoboto - firmware del cuerpo"));
-  Serial.println(F(" Paso 3: la cara viva"));
+  Serial.println(F(" Paso 4: cara viva + verbos HTTP"));
   Serial.println(F("=================================="));
 
   hayWiFi = conectarWiFi();
-  if (hayWiFi) iniciarOTA();
+  if (hayWiFi) {
+    iniciarOTA();
+    httpSetup(&engine);   // verbos HTTP en el puerto 80
+    Serial.print(F("[http] verbos listos en http://"));
+    Serial.print(WiFi.localIP());
+    Serial.println(F("/  (GET / para la ayuda)"));
+  }
 
   // Arranca la pantalla. U8g2 usa Wire por debajo (pines por defecto 21/22).
   Wire.begin(PIN_SDA, PIN_SCL);
@@ -98,7 +104,7 @@ void setup() {
 }
 
 void loop() {
-  if (hayWiFi) ArduinoOTA.handle();
+  if (hayWiFi) { ArduinoOTA.handle(); httpLoop(); }
 
   // Reloj de la animacion: dt real en segundos entre cuadros. Cap suave a
   // ~60 fps por si el bus I2C se sube y el loop se dispara; el limitante

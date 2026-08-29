@@ -28,6 +28,11 @@ FaceParams from_lovheim(float serotonina, float noradrenalina, float dopamina);
 // Etiqueta de la esquina mas cercana. Solo para debug/logs.
 const char* dominant_emotion(float serotonina, float noradrenalina, float dopamina);
 
+// Nombre de emocion -> quimica (S,NA,DA) que la produce. Las 8 esquinas del
+// cubo dan 0/1 exactos; "reposo" da el baseline contento. Devuelve false si el
+// nombre no existe. Sirve para /face?preset=alegria.
+bool chem_for_name(const char* name, float* s, float* n, float* d);
+
 // Etiquetas de voz -> empujon quimico (== VOICE_TAGS de presets.py).
 // El agente escribe [laughs] en su texto: ElevenLabs lo vuelve risa y nosotros
 // lo volvemos cara. Un solo token, dos efectos, cero clasificador externo.

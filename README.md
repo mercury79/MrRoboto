@@ -89,13 +89,34 @@ tradujeron a C++ campo por campo — mismo vector, mismas capas.
 - [x] Paso 1 — base: blink, escaneo I2C, WiFi y OTA
 - [x] Paso 2 — port del motor de dibujo a U8g2 (cara estática)
 - [x] Paso 3 — capas de vida en el firmware (parpadeo, sacadas, respiración)
-- [ ] Paso 4 — verbos HTTP: `/face`, `/wave`, `/look`
+- [x] Paso 4 — verbos HTTP: `/face`, `/look`, `/wave`
+
+### Verbos HTTP
+
+El cuerpo expone verbos y espera a que alguien los llame. El backend manda
+intención; el firmware la aplica sin dejar de mantener la cara viva.
+
+```
+GET /                       ayuda en texto plano
+GET /status                 estado actual (emoción + química) en JSON
+GET /face?preset=alegria    fija la química de una emoción
+GET /face?s=0.7&n=0.3&d=0.6 química absoluta (parcial: los que falten se quedan)
+GET /face?ds=0.1&dd=0.2     empujón relativo
+GET /face?tag=[laughs]      etiqueta de voz (mueve la química)
+GET /face?mouth=0.63        boca por voz (envolvente RMS 0..1)
+GET /look?x=-0.5&y=0.2      dirige la mirada (-1..1); decae sola al centro
+GET /wave                   saludo
+```
+
+Presets: `reposo alegria interes sorpresa miedo enojo desagrado angustia
+verguenza`. La boca tiene watchdog: si el stream de `mouth` muere, cierra sola
+a los 400 ms.
 
 ## Ruta
 
 - [x] Motor facial paramétrico + capas de vida (simulador)
 - [x] Port a ESP32 + SH1106 (U8g2)
-- [ ] Verbos HTTP: `/face`, `/wave`, `/look`
+- [x] Verbos HTTP: `/face`, `/wave`, `/look`
 - [ ] Backend: Whisper → Claude Agent SDK → ElevenLabs → RMS a la boca
 - [ ] MQTT + Home Assistant
 - [ ] Servos: PCA9685 + 4 GDL de cuello
